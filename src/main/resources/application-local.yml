@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:tcp://localhost/~/hackathon # 메모리 내 데이터베이스 URL, 동시접속을 위해 TCP 모드로 접속
+    driver-class-name: org.h2.Driver # H2 드라이버 클래스
+    username: sa # 기본 사용자 이름
+    password: # 기본 비밀번호
+  h2:
+    console:
+      enabled: true # H2 콘솔을 활성화합니다.
+      path: /h2-console # H2 콘솔의 접근 경로
