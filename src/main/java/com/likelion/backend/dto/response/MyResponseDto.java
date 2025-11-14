@@ -13,6 +13,7 @@ public class MyResponseDto {
     private Long id;
     private String name;
     private Role role;
+    private String answer;
     // 질문 관련 내용 private List ..
     // 이미지 관련 내용
 
@@ -25,6 +26,7 @@ public class MyResponseDto {
                 .id(member.getId())
                 .name(member.getName())
                 .role(member.getRole())
+                .answer(member.getAnswer())
                 .build();
     }
 }
