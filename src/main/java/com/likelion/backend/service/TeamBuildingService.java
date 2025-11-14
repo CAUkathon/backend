@@ -78,28 +78,31 @@ public class TeamBuildingService {
                     .build());
         }
 
-        // 7. 팔로워 최대한 균등 배분 (E/I 그룹 교차로 각 팀에)
+        // 7. 팔로워 최대한 균등 배분 (E/I 그룹 라운드로빈 교차 배정)
         int[] slots = new int[teamCount];
         for (int i = 0; i < teamCount; i++) {
-            // 리더 자리 뺀 인원
-            slots[i] = baseCount + (i < remainder ? 1 : 0) - 1;
+            slots[i] = baseCount + (i < remainder ? 1 : 0) - 1; // 리더 자리 제외
         }
 
         int eIndex = 0, iIndex = 0;
-        for (int i = 0; i < teamCount; i++) {
-            List<TeamMemberDto> teamList = teamsMembers.get(i);
-            int remain = slots[i];
+        boolean hasMore = true;
+        while (hasMore) {
+            hasMore = false;
+            for (int i = 0; i < teamCount; i++) {
+                if (slots[i] <= 0) continue;
 
-            while (remain > 0 && eIndex < eGroup.size()) {
-                Member m = eGroup.get(eIndex++);
-                teamList.add(toDto(m, false));
-                remain--;
-            }
+                if (eIndex < eGroup.size()) {
+                    teamsMembers.get(i).add(toDto(eGroup.get(eIndex++), false));
+                    slots[i]--;
+                    hasMore = true;
+                }
+                if (slots[i] <= 0) continue;
 
-            while (remain > 0 && iIndex < iGroup.size()) {
-                Member m = iGroup.get(iIndex++);
-                teamList.add(toDto(m, false));
-                remain--;
+                if (iIndex < iGroup.size()) {
+                    teamsMembers.get(i).add(toDto(iGroup.get(iIndex++), false));
+                    slots[i]--;
+                    hasMore = true;
+                }
             }
         }
 
