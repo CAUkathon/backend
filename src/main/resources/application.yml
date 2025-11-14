@@ -2,7 +2,7 @@ spring:
   config:
     import: optional:application-secret.yml
   profiles:
-    active: local
+    active: development
   jpa:
     hibernate:
       ddl-auto: create
