@@ -64,6 +64,22 @@ public class MemberService {
         // 3. 질문 답변 저장 + 캐릭터 판정 준비
         Map<String, String> answers = dto.getAnswers();
 
+        for (Map.Entry<String, String> entry : answers.entrySet()) {
+            Long questionNumber = Long.parseLong(entry.getKey()); // 받는거만 string하고 Long으로 변환
+            String answerText = entry.getValue();
+
+            Question question = questionRepository.findById(questionNumber)
+                    .orElseThrow(() -> new RuntimeException(questionNumber + "번 질문이 없습니다."));
+
+            QuestionResult result = QuestionResult.builder()
+                    .member(member)
+                    .question(question)
+                    .answer(answerText)
+                    .build();
+
+            questionResultRepository.save(result);
+        }
+
         String resultType = null;
         boolean determined = false;
 

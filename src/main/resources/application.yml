@@ -5,4 +5,4 @@ spring:
     active: local
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
