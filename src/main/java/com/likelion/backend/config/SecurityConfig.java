@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable) // http basic auth 기반 로그인 인증창 뜨지 않게
                 .formLogin(AbstractHttpConfigurer::disable) // 기본 로그인 페이지 뜨지 않게.
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("join", "/login","/my/{id}", "question").permitAll() // 모두 허용
+                        .requestMatchers("join", "/login","/my/{id}", "question", "/team").permitAll() // 모두 허용
                         .anyRequest().authenticated())
                 .build();
     }

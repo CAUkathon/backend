@@ -7,6 +7,7 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-public class TeamBuildingResponseDto {
-    private List<List<Long>> teams;
+public class TeamOutputDto {
+    private String teamName;
+    private List<TeamMemberDto> members;
 }
