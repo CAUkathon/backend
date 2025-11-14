@@ -1,10 +1,13 @@
 package com.likelion.backend.service;
 
 import com.likelion.backend.domain.Member;
+import com.likelion.backend.domain.Team;
 import com.likelion.backend.dto.response.TeamMemberDto;
 import com.likelion.backend.dto.response.TeamOutputDto;
 import com.likelion.backend.repository.MemberRepository;
 import com.likelion.backend.repository.QuestionResultRepository;
+import com.likelion.backend.repository.TeamRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +20,7 @@ public class TeamBuildingService {
 
     private final MemberRepository memberRepository;
     private final QuestionResultRepository questionResultRepository;
+    private final TeamRepository teamRepository;
 
     public List<TeamOutputDto> buildBalancedTeams(int totalMembers, int teamCount) {
 
@@ -141,13 +145,11 @@ public class TeamBuildingService {
             double sum = updatedTeam.stream().mapToDouble(TeamMemberDto::getDrinkScore).sum();
             teamDrinkAverages[minIndex] = sum / updatedTeam.size();
         }
-
         // 9. 최종 팀 Output DTO 생성
         List<TeamOutputDto> result = new ArrayList<>();
         for (int i = 0; i < teamCount; i++) {
             result.add(new TeamOutputDto("Team " + (i + 1), teamsMembers.get(i)));
         }
-
         return result;
     }
 
@@ -187,8 +189,69 @@ public class TeamBuildingService {
                     catch(Exception e){return 0;}
                 }).findFirst().orElse(0);
     }
-    public List<TeamOutputDto> buildTeams(int totalMembers, int teamCount) {
-        return buildBalancedTeams(totalMembers, teamCount);
+    //팀을 빌딩하고 결과를 DB에 저장하는 메서드
+    @Transactional
+    public List<TeamOutputDto> buildAndSaveTeams(int totalMembers, int teamCount) {
+        List<TeamOutputDto> teams = buildBalancedTeams(totalMembers, teamCount);
+
+        // 저장 전에 기존 팀 데이터 삭제 또는 필요한 초기화 실시 가능
+        teamRepository.deleteAll();
+
+        for (TeamOutputDto dto : teams) {
+            // 멤버 이름 -> 멤버 ID 리스트 생성
+            List<Long> memberIds = dto.getMembers().stream()
+                    .map(memberDto -> memberRepository.findByName(memberDto.getName())
+                            .orElseThrow(() -> new RuntimeException("Member not found: " + memberDto.getName()))
+                            .getId())
+                    .collect(Collectors.toList());
+
+            // 리더 ID 구하기 (leader 필드 true인 멤버)
+            Optional<Long> leaderIdOpt = dto.getMembers().stream()
+                    .filter(TeamMemberDto::isLeader)
+                    .map(memberDto -> memberRepository.findByName(memberDto.getName())
+                            .orElseThrow(() -> new RuntimeException("Leader not found: " + memberDto.getName()))
+                            .getId())
+                    .findFirst();
+
+            Long leaderId = leaderIdOpt.orElse(null);
+
+            Team team = Team.builder()
+                    .teamName(dto.getTeamName())
+                    .memberIds(memberIds)
+                    .build();
+
+            teamRepository.save(team);
+        }
+        return teams;
     }
 
+    public List<TeamOutputDto> buildTeams(int totalMembers, int teamCount) {
+        // 아래 메서드를 호출하면 팀 빌딩이랑 DB 저장을 동시에 수행함
+        return buildAndSaveTeams(totalMembers, teamCount);
+    }
+
+    public List<TeamOutputDto> getAllTeams() {
+        List<Team> teams = teamRepository.findAll();
+
+        List<TeamOutputDto> result = new ArrayList<>();
+
+        for (Team team : teams) {
+            // 팀 멤버 리스트 생성 (멤버 엔티티 조회)
+            List<TeamMemberDto> members = team.getMemberIds().stream()
+                    .map(id -> memberRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .map(member -> TeamMemberDto.builder()
+                            .name(member.getName())
+                            .mbti(getMbtiFirstLetter(member))
+                            .drinkScore(getDrinkScore(member))
+                            // 리더 여부는 팀 빌딩 시 저장된 데이터 통해 찾았음
+                            .leader(member.getId().equals(team.getLeaderId()))
+                            .build())
+                    .collect(Collectors.toList());
+
+            // 팀명과 멤버 리스트로 DTO 생성
+            result.add(new TeamOutputDto(team.getTeamName(), members));
+        }
+        return result;
+    }
 }
