@@ -12,6 +12,7 @@ public class JoinResponseDto {
     private Long id;
     private String name;
     private Role role;
+    private String answer;
 
     // DTO 변환
     public static JoinResponseDto fromEntity(Member member){
@@ -22,6 +23,7 @@ public class JoinResponseDto {
                 .id(member.getId())
                 .name(member.getName())
                 .role(member.getRole())
+                .answer(member.getAnswer())
                 .build();
     }
 }
