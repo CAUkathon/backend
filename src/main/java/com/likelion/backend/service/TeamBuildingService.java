@@ -99,44 +99,61 @@ public class TeamBuildingService {
         }
 
         // 7. 팔로워 최대한 균등 배분 - 라운드로빈 방식 (성별+MBTI 고려했음)
-        int[] slots = new int[teamCount];
+        List<Member> remain = new ArrayList<>();
+        remain.addAll(eMaleGroup);
+        remain.addAll(eFemaleGroup);
+        remain.addAll(iMaleGroup);
+        remain.addAll(iFemaleGroup);
+
+        int[] slot = new int[teamCount];
         for (int i = 0; i < teamCount; i++) {
-            slots[i] = baseCount + (i < remainder ? 1 : 0) - 1; // 리더 자리 제외
+            slot[i] = baseCount + (i < remainder ? 1 : 0) - 1; // 리더 자리 제외
         }
 
-        int eMaleIndex = 0, eFemaleIndex = 0, iMaleIndex = 0, iFemaleIndex = 0;
-        boolean hasMore = true;
-        while (hasMore) {
-            hasMore = false;
-            for (int i = 0; i < teamCount; i++) {
-                if (slots[i] <= 0) continue;
+        while (!remain.isEmpty()) {
+            Member bestMember = null;
+            int bestTeamIdx = -1;
+            double bestScore = Double.MAX_VALUE;
 
-                if (eMaleIndex < eMaleGroup.size()) {
-                    teamsMembers.get(i).add(toDto(eMaleGroup.get(eMaleIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
-                }
-                if (slots[i] <= 0) continue;
+            for (Member m : remain) {
+                String teamMbtiFirstLetter = getMbtiFirstLetter(m);
+                int eOrI = ("E".equalsIgnoreCase(teamMbtiFirstLetter)) ? 1 : -1;
+                String gender = m.getGender();
+                int drinkScore = getDrinkScore(m);
 
-                if (eFemaleIndex < eFemaleGroup.size()) {
-                    teamsMembers.get(i).add(toDto(eFemaleGroup.get(eFemaleIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
-                }
-                if (slots[i] <= 0) continue;
+                for (int t = 0; t < teamCount; t++) {
+                    if (slot[t] <= 0) continue;
 
-                if (iMaleIndex < iMaleGroup.size()) {
-                    teamsMembers.get(i).add(toDto(iMaleGroup.get(iMaleIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
-                }
-                if (slots[i] <= 0) continue;
+                    List<TeamMemberDto> tmp = new ArrayList<>(teamsMembers.get(t));
+                    tmp.add(toDto(m, false));
 
-                if (iFemaleIndex < iFemaleGroup.size()) {
-                    teamsMembers.get(i).add(toDto(iFemaleGroup.get(iFemaleIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
+                    int eCount = (int) tmp.stream().filter(mem -> "E".equalsIgnoreCase(mem.getMbti())).count();
+                    int iCount = tmp.size() - eCount;
+                    long maleCount = tmp.stream().filter(mem -> "남자".equalsIgnoreCase(
+                            memberRepository.findByName(mem.getName()).map(Member::getGender).orElse(""))).count();
+                    long femaleCount = tmp.size() - maleCount;
+
+                    double avgDrink = tmp.stream().mapToInt(TeamMemberDto::getDrinkScore).average().orElse(0);
+                    double drinkGap = Math.abs(avgDrink - drinkScore);
+
+                    double score = Math.abs((double) eCount / tmp.size() - 0.5)
+                            + Math.abs((double) maleCount / tmp.size() - 0.5)
+                            + drinkGap * 0.1;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestMember = m;
+                        bestTeamIdx = t;
+                    }
                 }
+            }
+
+            if (bestMember != null && bestTeamIdx != -1) {
+                teamsMembers.get(bestTeamIdx).add(toDto(bestMember, false));
+                slot[bestTeamIdx]--;
+                remain.remove(bestMember);
+            } else {
+                break;
             }
         }
 
@@ -153,17 +170,8 @@ public class TeamBuildingService {
         }
 
         List<Member> remainingMembers = new ArrayList<>();
-        if (eMaleIndex < eMaleGroup.size()) {
-            remainingMembers.addAll(eMaleGroup.subList(eMaleIndex, eMaleGroup.size()));
-        }
-        if (eFemaleIndex < eFemaleGroup.size()) {
-            remainingMembers.addAll(eFemaleGroup.subList(eFemaleIndex, eFemaleGroup.size()));
-        }
-        if (iMaleIndex < iMaleGroup.size()) {
-            remainingMembers.addAll(iMaleGroup.subList(iMaleIndex, iMaleGroup.size()));
-        }
-        if (iFemaleIndex < iFemaleGroup.size()) {
-            remainingMembers.addAll(iFemaleGroup.subList(iFemaleIndex, iFemaleGroup.size()));
+        if (!remain.isEmpty()) {
+            remainingMembers.addAll(remain);
         }
         remainingMembers.sort(drinkDescThenId);
 
