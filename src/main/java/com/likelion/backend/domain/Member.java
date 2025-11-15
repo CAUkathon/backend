@@ -22,14 +22,16 @@ public class Member extends BaseTimeEntity{
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String gender;
     private String answer;
 
     // 생성자
     @Builder
-    public Member(String name, String password, Role role) {
+    public Member(String name, String password, Role role, String gender) {
         this.name = name;
         this.password = password;
         this.role = role == null ? BABY : role;
+        this.gender = gender;
     }
 
     public boolean isBaby(){return Role.BABY.equals(this.role);}
