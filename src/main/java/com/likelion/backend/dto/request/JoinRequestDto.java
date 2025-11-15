@@ -10,6 +10,7 @@ import java.util.Map;
 public class JoinRequestDto {
     private String name;
     private String password;
+    private String gender;
     private Map<String, String> answers;
 
     // 회원가입
@@ -17,6 +18,7 @@ public class JoinRequestDto {
         return Member.builder()
                 .name(this.name)
                 .password(bCryptPasswordEncoder.encode(this.password))
+                .gender(this.gender)
                 .build();
     }
 }
