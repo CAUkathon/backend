@@ -48,7 +48,7 @@ public class Member extends BaseTimeEntity{
     public boolean isBaby(){return Role.BABY.equals(this.role);}
     public boolean isAdult(){return Role.ADULT.equals(this.role);}
 
-    public void setAnswer(String answer) {
+    /*public void setAnswer(String answer) {
         this.answer = answer;
-    }
+    }*/
 }
