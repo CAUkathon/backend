@@ -357,4 +357,11 @@ public class TeamBuildingService {
         }
         return result;
     }
+
+    @Transactional
+    public void clearAllTeams() {
+        teamRepository.deleteAll();  // 두 테이블 모두 자동 삭제.
+
+        memberRepository.resetTeamBuilt();
+    }
 }

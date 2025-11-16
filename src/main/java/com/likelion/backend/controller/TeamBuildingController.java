@@ -44,4 +44,15 @@ public class TeamBuildingController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleteTeamBuildingResults() {
+        try {
+            teamBuildingService.clearAllTeams();
+            return ResponseEntity.ok("모든 팀 데이터가 삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("삭제 중 오류 발생");
+        }
+    }
+
+
 }
