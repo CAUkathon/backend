@@ -32,7 +32,7 @@ public class MyResponseDto {
                 .answer(member.getAnswer())
                 .image(member.getImage())
                 .description(description)
-                .teamBuilt(member.isTeamBuilt())  // 추가
+                .teamBuilt(member.isTeamBuilt())
                 .build();
     }
 }
