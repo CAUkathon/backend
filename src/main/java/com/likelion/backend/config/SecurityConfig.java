@@ -44,7 +44,7 @@ public class SecurityConfig {
             CorsConfiguration configuration = new CorsConfiguration();
 
             configuration.setAllowedMethods(Collections.singletonList("*")); // 모든 메서드 허용
-            configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // 프론트에서 오는 요청 허용
+            configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://whatlion.netlify.app")); // 프론트에서 오는 요청 허용
             configuration.setAllowedHeaders(Collections.singletonList("*")); // 모든 헤더 허용
             configuration.setAllowCredentials(true);
             configuration.setMaxAge(3600L); // 1시간(3600초) 동안 오는 요청이 처리됨
