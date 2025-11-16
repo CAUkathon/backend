@@ -16,10 +16,12 @@ public class MyResponseDto {
     private String answer;
     // 질문 관련 내용 private List ..
     // 이미지 관련 내용
+    private String image;
+    private String description;
     private boolean teamBuilt;  // 추가
 
     // DTO 변환
-    public static MyResponseDto fromEntity(Member member){
+    public static MyResponseDto fromEntity(Member member, String description){
 
         // 질문 결과 list 관련
 
@@ -28,7 +30,9 @@ public class MyResponseDto {
                 .name(member.getName())
                 .role(member.getRole())
                 .answer(member.getAnswer())
-                .teamBuilt(member.isTeamBuilt())  // 추가
+                .image(member.getImage())
+                .description(description)
+                .teamBuilt(member.isTeamBuilt())
                 .build();
     }
 }

@@ -22,6 +22,8 @@ public class Question extends BaseTimeEntity{
 
     private QuestionType type; // 질문 유형 (척도, 주관식입력, 선택형)
 
+    private String keyword; //질문 키워드
+
     @ElementCollection
     @CollectionTable(name = "question_choices", joinColumns = @JoinColumn(name = "question_id"))
     @Column(name = "choice")
@@ -33,6 +35,7 @@ public class Question extends BaseTimeEntity{
         this.content = content;
         this.type = type;
         this.choices = new ArrayList<>(choices);
+        this.keyword = "";
     }
 
 }

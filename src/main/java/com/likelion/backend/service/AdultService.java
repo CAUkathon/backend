@@ -26,14 +26,23 @@ public class AdultService {
 
         // 2) DTO로 변환
         List<AdultResponseDto> dtoList = grouped.entrySet().stream()
-                .map(entry -> AdultResponseDto.builder()
-                        .memberId(entry.getKey())
-                        .memberName(entry.getValue().get(0).getMember().getName())
-                        .answers(entry.getValue().stream()
-                                .map(QuestionResult::getAnswer)
-                                .toList()
-                        )
-                        .build()
+                .map(entry -> {
+                            Long memberId = entry.getKey();
+                            List<QuestionResult> qrList = entry.getValue();
+
+                            // answers를 Map<questionKeyword, answer> 형태로 변환
+                            Map<String, String> answersMap = qrList.stream()
+                                    .collect(Collectors.toMap(
+                                            qr -> qr.getQuestion().getKeyword(), // key
+                                            QuestionResult::getAnswer                    // value
+                                    ));
+
+                            return AdultResponseDto.builder()
+                                    .memberId(memberId)
+                                    .memberName(qrList.get(0).getMember().getName())
+                                    .answers(answersMap)
+                                    .build();
+                        }
                 )
                 .toList();
 
