@@ -19,6 +19,7 @@ public class JoinRequestDto {
                 .name(this.name)
                 .password(bCryptPasswordEncoder.encode(this.password))
                 .gender(this.gender)
+                .teamBuilt(false)  // 추가
                 .build();
     }
 }

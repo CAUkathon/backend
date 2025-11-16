@@ -14,6 +14,7 @@ public class JoinResponseDto {
     private Role role;
     private String gender;
     private String answer;
+    private boolean teamBuilt;  // 추가
 
     // DTO 변환
     public static JoinResponseDto fromEntity(Member member){
@@ -26,6 +27,7 @@ public class JoinResponseDto {
                 .role(member.getRole())
                 .gender(member.getGender())
                 .answer(member.getAnswer())
+                .teamBuilt(member.isTeamBuilt())   // 추가
                 .build();
     }
 }
