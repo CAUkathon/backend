@@ -16,6 +16,7 @@ public class MyResponseDto {
     private String answer;
     // 질문 관련 내용 private List ..
     // 이미지 관련 내용
+    private boolean teamBuilt;  // 추가
 
     // DTO 변환
     public static MyResponseDto fromEntity(Member member){
@@ -27,6 +28,7 @@ public class MyResponseDto {
                 .name(member.getName())
                 .role(member.getRole())
                 .answer(member.getAnswer())
+                .teamBuilt(member.isTeamBuilt())  // 추가
                 .build();
     }
 }
