@@ -36,7 +36,7 @@ public class Member extends BaseTimeEntity{
     private boolean teamBuilt = false;
     // 생성자
     @Builder
-    public Member(String name, String password, Role role, String gender) {
+    public Member(String name, String password, Role role, String gender, boolean teamBuilt) {
         this.name = name;
         this.password = password;
         this.role = role == null ? BABY : role;
