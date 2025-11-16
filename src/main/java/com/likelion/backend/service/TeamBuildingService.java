@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,6 +59,25 @@ public class TeamBuildingService {
         eGroup.sort(drinkDescThenId);
         iGroup.sort(drinkDescThenId);
 
+        // 성별 분리 및 정렬 추가
+        List<Member> eMaleGroup = eGroup.stream()
+                .filter(m -> "남자".equalsIgnoreCase(m.getGender()))
+                .collect(Collectors.toList());
+        List<Member> eFemaleGroup = eGroup.stream()
+                .filter(m -> "여자".equalsIgnoreCase(m.getGender()))
+                .collect(Collectors.toList());
+        List<Member> iMaleGroup = iGroup.stream()
+                .filter(m -> "남자".equalsIgnoreCase(m.getGender()))
+                .collect(Collectors.toList());
+        List<Member> iFemaleGroup = iGroup.stream()
+                .filter(m -> "여자".equalsIgnoreCase(m.getGender()))
+                .collect(Collectors.toList());
+
+        eMaleGroup.sort(drinkDescThenId);
+        eFemaleGroup.sort(drinkDescThenId);
+        iMaleGroup.sort(drinkDescThenId);
+        iFemaleGroup.sort(drinkDescThenId);
+
         // 5. 팀별 균등 인원 할당 준비
         int baseCount = totalMembers / teamCount;
         int remainder = totalMembers % teamCount;
@@ -78,44 +98,66 @@ public class TeamBuildingService {
                     .build());
         }
 
-        // 7. 팔로워 최대한 균등 배분 (E/I 그룹 라운드로빈 교차 배정)
-        int[] slots = new int[teamCount];
+        // 7. 팔로워 최대한 균등 배분 - 라운드로빈 방식 (성별+MBTI 고려했음)
+        List<Member> remain = new ArrayList<>();
+        remain.addAll(eMaleGroup);
+        remain.addAll(eFemaleGroup);
+        remain.addAll(iMaleGroup);
+        remain.addAll(iFemaleGroup);
+
+        int[] slot = new int[teamCount];
         for (int i = 0; i < teamCount; i++) {
-            slots[i] = baseCount + (i < remainder ? 1 : 0) - 1; // 리더 자리 제외
+            slot[i] = baseCount + (i < remainder ? 1 : 0) - 1; // 리더 자리 제외
         }
 
-        int eIndex = 0, iIndex = 0;
-        boolean hasMore = true;
-        while (hasMore) {
-            hasMore = false;
-            for (int i = 0; i < teamCount; i++) {
-                if (slots[i] <= 0) continue;
+        while (!remain.isEmpty()) {
+            Member bestMember = null;
+            int bestTeamIdx = -1;
+            double bestScore = Double.MAX_VALUE;
 
-                if (eIndex < eGroup.size()) {
-                    teamsMembers.get(i).add(toDto(eGroup.get(eIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
-                }
-                if (slots[i] <= 0) continue;
+            for (Member m : remain) {
+                String teamMbtiFirstLetter = getMbtiFirstLetter(m);
+                int eOrI = ("E".equalsIgnoreCase(teamMbtiFirstLetter)) ? 1 : -1;
+                String gender = m.getGender();
+                int drinkScore = getDrinkScore(m);
 
-                if (iIndex < iGroup.size()) {
-                    teamsMembers.get(i).add(toDto(iGroup.get(iIndex++), false));
-                    slots[i]--;
-                    hasMore = true;
+                for (int t = 0; t < teamCount; t++) {
+                    if (slot[t] <= 0) continue;
+
+                    List<TeamMemberDto> tmp = new ArrayList<>(teamsMembers.get(t));
+                    tmp.add(toDto(m, false));
+
+                    int eCount = (int) tmp.stream().filter(mem -> "E".equalsIgnoreCase(mem.getMbti())).count();
+                    int iCount = tmp.size() - eCount;
+                    long maleCount = tmp.stream().filter(mem -> "남자".equalsIgnoreCase(
+                            memberRepository.findByName(mem.getName()).map(Member::getGender).orElse(""))).count();
+                    long femaleCount = tmp.size() - maleCount;
+
+                    double avgDrink = tmp.stream().mapToInt(TeamMemberDto::getDrinkScore).average().orElse(0);
+                    double drinkGap = Math.abs(avgDrink - drinkScore);
+
+                    double score = Math.abs((double) eCount / tmp.size() - 0.5)
+                            + Math.abs((double) maleCount / tmp.size() - 0.5)
+                            + drinkGap * 0.1;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestMember = m;
+                        bestTeamIdx = t;
+                    }
                 }
+            }
+
+            if (bestMember != null && bestTeamIdx != -1) {
+                teamsMembers.get(bestTeamIdx).add(toDto(bestMember, false));
+                slot[bestTeamIdx]--;
+                remain.remove(bestMember);
+            } else {
+                break;
             }
         }
 
         // 8. 남은 멤버 처리 - 음주 점수 내림차순으로 정렬
-        List<Member> remainingMembers = new ArrayList<>();
-        if (eIndex < eGroup.size()) {
-            remainingMembers.addAll(eGroup.subList(eIndex, eGroup.size()));
-        }
-        if (iIndex < iGroup.size()) {
-            remainingMembers.addAll(iGroup.subList(iIndex, iGroup.size()));
-        }
-        remainingMembers.sort(drinkDescThenId);
-
         // 팀별 현재 음주점수 평균 계산
         double[] teamDrinkAverages = new double[teamCount];
         for (int i = 0; i < teamCount; i++) {
@@ -127,15 +169,41 @@ public class TeamBuildingService {
             teamDrinkAverages[i] = teamList.isEmpty() ? 0 : sum / teamList.size();
         }
 
+        List<Member> remainingMembers = new ArrayList<>();
+        if (!remain.isEmpty()) {
+            remainingMembers.addAll(remain);
+        }
+        remainingMembers.sort(drinkDescThenId);
+
+        // 팀별 성별 인원 수 집계 함수
+        Function<List<TeamMemberDto>, Map<String, Long>> genderCountInTeam = teamList -> teamList.stream()
+                .collect(Collectors.groupingBy(tm -> {
+                    return memberRepository.findByName(tm.getName())
+                            .map(Member::getGender)
+                            .orElse("unknown");
+                }, Collectors.counting()));
+
         // 남은 멤버를 음주 점수가 가장 근접한 팀에 순차 배정
         for (Member m : remainingMembers) {
             int drinkScore = getDrinkScore(m);
-            // 음주점수 거리가 최소인 팀 선택
+            String gender = m.getGender();
+            //음주점수 거리가 최소인 팀 선택
             int minIndex = 0;
-            double minDiff = Math.abs(teamDrinkAverages[0] - drinkScore);
+            double minDiff = Double.MAX_VALUE;
 
-            for (int i = 1; i < teamCount; i++) {
+            for (int i = 0; i < teamCount; i++) {
+                List<TeamMemberDto> team = teamsMembers.get(i);
                 double diff = Math.abs(teamDrinkAverages[i] - drinkScore);
+
+                Map<String, Long> genderCount = genderCountInTeam.apply(team);
+                long genderNum = genderCount.getOrDefault(gender, 0L);
+
+                // 성별 균형을 고려한 페널티 부여
+                long maxGenderCount = genderCount.values().stream().max(Long::compare).orElse(0L);
+                if (genderNum == maxGenderCount && maxGenderCount > 0) {
+                    diff *= 1.5;
+                }
+
                 if (diff < minDiff) {
                     minDiff = diff;
                     minIndex = i;
