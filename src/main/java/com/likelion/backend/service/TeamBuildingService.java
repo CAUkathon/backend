@@ -263,10 +263,25 @@ public class TeamBuildingService {
     //팀을 빌딩하고 결과를 DB에 저장하는 메서드
     @Transactional
     public List<TeamOutputDto> buildAndSaveTeams(int totalMembers, int teamCount) {
+
+        int currentMemberCount = (int) memberRepository.count();
+        if (totalMembers > currentMemberCount) {
+            throw new IllegalArgumentException("전체 멤버 수가 존재하는 회원 수보다 많습니다.");
+        }
+        if (teamCount > totalMembers) {
+            throw new IllegalArgumentException("팀 개수가 전체 멤버 수보다 많을 수 없습니다.");
+        }
+
         List<TeamOutputDto> teams = buildBalancedTeams(totalMembers, teamCount);
 
-        // 저장 전에 기존 팀 데이터 삭제 또는 필요한 초기화 실시 가능
         teamRepository.deleteAll();
+
+        // 멤버 전체 teamBuilt 필드를 true로 업데이트
+        List<Member> allMembers = memberRepository.findAll();
+        for (Member member : allMembers) {
+            member.setTeamBuilt(true);
+        }
+        memberRepository.saveAll(allMembers);
 
         for (TeamOutputDto dto : teams) {
             // 멤버 이름 -> 멤버 ID 리스트 생성
@@ -275,16 +290,6 @@ public class TeamBuildingService {
                             .orElseThrow(() -> new RuntimeException("Member not found: " + memberDto.getName()))
                             .getId())
                     .collect(Collectors.toList());
-
-            // 리더 ID 구하기 (leader 필드 true인 멤버)
-            Optional<Long> leaderIdOpt = dto.getMembers().stream()
-                    .filter(TeamMemberDto::isLeader)
-                    .map(memberDto -> memberRepository.findByName(memberDto.getName())
-                            .orElseThrow(() -> new RuntimeException("Leader not found: " + memberDto.getName()))
-                            .getId())
-                    .findFirst();
-
-            Long leaderId = leaderIdOpt.orElse(null);
 
             Team team = Team.builder()
                     .teamName(dto.getTeamName())
@@ -303,6 +308,10 @@ public class TeamBuildingService {
 
     public List<TeamOutputDto> getAllTeams() {
         List<Team> teams = teamRepository.findAll();
+
+        // 팀빌딩 미완료 멤버 존재 여부 판단
+        boolean hasUnbuiltMembers = memberRepository.findAll().stream()
+                .anyMatch(m -> !m.isTeamBuilt());
 
         List<TeamOutputDto> result = new ArrayList<>();
 
