@@ -23,6 +23,7 @@ public class QuestionResult {
     @ManyToOne
     @JoinColumn(name = "question_id")
     private Question question;
+    //private String questionKeyword = question.getKeyword();
 
     private String answer;
 }

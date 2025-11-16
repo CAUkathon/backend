@@ -143,6 +143,26 @@ public class MemberService {
 
         Member member = memberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-        return MyResponseDto.fromEntity(member);
+        String description = "";
+        String type = member.getAnswer();
+        if (type.equals("나폴레옹 사자")){
+            description = "카리스마 뿜뿜! 리더십과 결단력이 강해서 어디서든 중심이 되는 사자.";
+        }
+        else if (type.equals("헤롱헤롱 사자")){
+            description = "즐거움을 사랑하는 파티형 사자. 내가 바로 술자리 분위기 메이커!";
+        }
+        else if (type.equals("이불 속 사자")){
+            description = "이불 밖은 위험해 ㅠㅠ 오늘 만큼은 밀림의 왕이 아닌 집콕의 왕!";
+        }
+        else if (type.equals("식빵 굽는 사자")){
+            description = "밖으로 나가면 에너지 폭발! 사람들과 어울리며 새로운 경험을 즐기는 사자.";
+        }
+        else if (type.equals("친구를 만나느라 샤샤샤자")){
+            description = "외출은 귀찮지만, 친한 친구만 있으면 OK! 찾았다, 멋사의 소모임을 이끌어 갈 사자!";
+        }
+        else if (type.equals("반전 매력 사자")){
+            description = "밖에서는 쾌활, 집에서는 느긋… 두 얼굴의 매력둥이 사자. 알고 보면 은근 귀여움 폭발!";
+        }
+        return MyResponseDto.fromEntity(member, description);
     }
 }
