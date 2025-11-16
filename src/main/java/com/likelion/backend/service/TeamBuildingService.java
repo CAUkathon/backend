@@ -260,6 +260,25 @@ public class TeamBuildingService {
                     catch(Exception e){return 0;}
                 }).findFirst().orElse(0);
     }
+
+    private String getMbtiFull(Member member) {
+        return questionResultRepository.findByMember(member).stream()
+                .filter(qr -> qr.getQuestion() != null
+                        && qr.getQuestion().getContent().contains("MBTI"))
+                .map(qr -> qr.getAnswer())
+                .findFirst()
+                .orElse("");
+    }
+
+    private String getAnswerByQuestionContent(Member member, String questionCode) {
+        return questionResultRepository.findByMember(member).stream()
+                .filter(qr -> qr.getQuestion() != null
+                        && (qr.getQuestion().getContent() != null && qr.getQuestion().getContent().contains(questionCode)))
+                .map(qr -> qr.getAnswer())
+                .findFirst()
+                .orElse("");
+    }
+
     //팀을 빌딩하고 결과를 DB에 저장하는 메서드
     @Transactional
     public List<TeamOutputDto> buildAndSaveTeams(int totalMembers, int teamCount) {
@@ -322,10 +341,14 @@ public class TeamBuildingService {
                     .filter(Objects::nonNull)
                     .map(member -> TeamMemberDto.builder()
                             .name(member.getName())
-                            .mbti(getMbtiFirstLetter(member))
+                            .mbti("mbti: " + getMbtiFull(member))
                             .drinkScore(getDrinkScore(member))
+                            .hobby("취미/관심사: " + getAnswerByQuestionContent(member, "취미"))
+                            .favoriteFood("좋아하는 음식: " + getAnswerByQuestionContent(member, "음식"))
+                            .wildLionAnswer("야생의 사자를 만나면: " + getAnswerByQuestionContent(member, "야생"))
                             // 리더 여부는 팀 빌딩 시 저장된 데이터 통해 찾았음
                             .leader(member.getId().equals(team.getLeaderId()))
+                            .image(member.getImage())
                             .build())
                     .collect(Collectors.toList());
 
