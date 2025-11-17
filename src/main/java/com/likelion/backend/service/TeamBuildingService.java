@@ -4,6 +4,7 @@ import com.likelion.backend.domain.Member;
 import com.likelion.backend.domain.Team;
 import com.likelion.backend.dto.response.TeamMemberDto;
 import com.likelion.backend.dto.response.TeamOutputDto;
+import com.likelion.backend.enums.Role;
 import com.likelion.backend.repository.MemberRepository;
 import com.likelion.backend.repository.QuestionResultRepository;
 import com.likelion.backend.repository.TeamRepository;
@@ -25,7 +26,7 @@ public class TeamBuildingService {
 
     public List<TeamOutputDto> buildBalancedTeams(int totalMembers, int teamCount) {
 
-        List<Member> allMembers = memberRepository.findAll();
+        List<Member> allMembers = memberRepository.findByRole(Role.BABY);
         List<Member> members = allMembers.subList(0, Math.min(totalMembers, allMembers.size()));
 
         // 1. 리더 점수로 리더 선발 <- 질문 1 답이 낮을수록 리더형!
@@ -283,9 +284,12 @@ public class TeamBuildingService {
     @Transactional
     public List<TeamOutputDto> buildAndSaveTeams(int totalMembers, int teamCount) {
 
-        int currentMemberCount = (int) memberRepository.count();
+        int currentMemberCount = (int) memberRepository.countByRole(Role.BABY);
         if (totalMembers > currentMemberCount) {
-            throw new IllegalArgumentException("전체 멤버 수가 존재하는 회원 수보다 많습니다.");
+            throw new IllegalArgumentException("입력하신 회원 수가 존재하는 회원 수보다 많습니다." + "존재하는 회원 수: " + currentMemberCount);
+        }
+        else if (totalMembers < currentMemberCount) {
+            throw new IllegalArgumentException("존재하는 회원 수가 입력하신 회원 수보다 많습니다." + "존재하는 회원 수: " + currentMemberCount);
         }
         if (teamCount > totalMembers) {
             throw new IllegalArgumentException("팀 개수가 전체 멤버 수보다 많을 수 없습니다.");
