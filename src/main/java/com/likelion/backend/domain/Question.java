@@ -31,9 +31,10 @@ public class Question extends BaseTimeEntity{
 
     // 생성자
     @Builder
-    public Question(String content, QuestionType type, List<String> choices){
+    public Question(String content, QuestionType type, String keyword, List<String> choices){
         this.content = content;
         this.type = type;
+        this.keyword = keyword;
         this.choices = new ArrayList<>(choices);
         this.keyword = "";
     }

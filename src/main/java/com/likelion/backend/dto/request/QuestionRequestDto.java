@@ -16,6 +16,7 @@ public class QuestionRequestDto {
     private String content; // 질문 제목
     private String inputType; // 클라리언특 보내는 값
     private QuestionType type;
+    private String keyword; //질문 키워드
     private List<String> choices;
 
     public QuestionType toQuestionType() {
@@ -31,6 +32,7 @@ public class QuestionRequestDto {
         return Question.builder()
                 .content(this.content)
                 .type(toQuestionType())
+                .keyword(this.keyword)
                 .choices(this.choices)
                 .build();
     }
