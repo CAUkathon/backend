@@ -24,7 +24,7 @@ public class TeamBuildingController {
     @PostMapping
     public ResponseEntity<?> buildTeams(@RequestBody TeamBuildingRequestDto dto) {
         try {
-            List<TeamOutputDto> teams = teamBuildingService.buildTeams(dto.getTotalMembers(), dto.getTeamCount());
+            List<TeamOutputDto> teams = teamBuildingService.buildAndSaveTeams(dto.getTotalMembers(), dto.getTeamCount());
             return ResponseEntity.ok(teams);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -53,6 +53,4 @@ public class TeamBuildingController {
             return ResponseEntity.status(500).body("삭제 중 오류 발생");
         }
     }
-
-
 }
