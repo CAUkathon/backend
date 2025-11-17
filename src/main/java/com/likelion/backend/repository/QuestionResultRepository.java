@@ -11,4 +11,6 @@ public interface QuestionResultRepository extends JpaRepository<QuestionResult, 
     boolean existsByMember(Member member);
 
     List<QuestionResult> findByMember(Member member);
+
+    void deleteAllByMember_Id(Long memberId);
 }
