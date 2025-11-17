@@ -192,6 +192,7 @@ public class MemberService {
     public void deleteMember(Long id) {
         Member member = memberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+        questionResultRepository.deleteAllByMember_Id(id);
         memberRepository.delete(member);
     }
 
