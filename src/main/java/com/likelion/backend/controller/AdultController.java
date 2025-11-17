@@ -1,6 +1,5 @@
 package com.likelion.backend.controller;
 
-import com.likelion.backend.dto.response.AdultResponseDto;
 import com.likelion.backend.dto.response.AdultWrapperResponseDto;
 import com.likelion.backend.service.AdultService;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +15,10 @@ import java.util.List;
 public class AdultController {
     private final AdultService adultService;
 
+
     @GetMapping
     public AdultWrapperResponseDto getGroupedResults(){
         return adultService.getResultsGroupedByMember();
     }
+
 }

@@ -8,12 +8,14 @@ import com.likelion.backend.dto.request.LoginRequestDto;
 import com.likelion.backend.dto.response.JoinResponseDto;
 import com.likelion.backend.dto.response.LoginResponseDto;
 import com.likelion.backend.dto.response.MyResponseDto;
+import com.likelion.backend.enums.Role;
 import com.likelion.backend.repository.MemberRepository;
 import com.likelion.backend.repository.QuestionRepository;
 import com.likelion.backend.repository.QuestionResultRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -52,92 +54,112 @@ public class MemberService {
 
     public JoinResponseDto join(JoinRequestDto dto){
 
-        // 1. 이미 존재하는 사용자면 예외 던짐 (회원가입이므로)
         if (memberRepository.existsByName(dto.getName())) {
             throw new IllegalArgumentException("이미 존재하는 사용자입니다.");
         }
 
-        // 2. 신규 회원 생성
-        Member member = dto.toEntity(bCryptPasswordEncoder);
-        memberRepository.save(member);
-
-        // 3. 질문 답변 저장 + 캐릭터 판정 준비
         Map<String, String> answers = dto.getAnswers();
 
+        // 1) 캐릭터 타입 & 이미지 계산
+        var result = determineCharacter(answers);
+
+        // 2) Member 처음부터 answer/image 포함하여 생성
+        Member member = Member.builder()
+                .name(dto.getName())
+                .password(bCryptPasswordEncoder.encode(dto.getPassword()))
+                .role(Role.BABY)
+                .gender(dto.getGender())
+                .answer(result.get("type"))
+                .image(result.get("image"))
+                .build();
+
+        memberRepository.save(member);
+
+        // 3) 질문 저장 (QuestionResult)
         for (Map.Entry<String, String> entry : answers.entrySet()) {
-            Long questionNumber = Long.parseLong(entry.getKey()); // 받는거만 string하고 Long으로 변환
+
+            Long questionNumber = Long.parseLong(entry.getKey());
             String answerText = entry.getValue();
 
             Question question = questionRepository.findById(questionNumber)
                     .orElseThrow(() -> new RuntimeException(questionNumber + "번 질문이 없습니다."));
 
-            QuestionResult result = QuestionResult.builder()
+            QuestionResult qr = QuestionResult.builder()
                     .member(member)
                     .question(question)
                     .answer(answerText)
                     .build();
 
-            questionResultRepository.save(result);
+            questionResultRepository.save(qr);
         }
 
-        String resultType = null;
-        boolean determined = false;
+        return JoinResponseDto.fromEntity(member);
+    }
 
+    private Map<String, String> determineCharacter(Map<String, String> answers) {
+
+        // 1번
         String s1 = answers.get("1");
         if (s1 != null) {
             try {
                 int v1 = Integer.parseInt(s1.trim());
                 if (v1 >= 8) {
-                    resultType = "팔로워형 사자";
-                    determined = true;
+                    return Map.of(
+                            "type", "나폴레옹 사자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/NapoleonLion.jpg"
+                    );
                 }
             } catch (NumberFormatException ignored) {}
         }
 
-
-        if (!determined) {
-            String s2 = answers.get("2");
-            if (s2 != null) {
-                try {
-                    int v2 = Integer.parseInt(s2.trim());
-                    if (v2 >= 8) {
-                        resultType = "헤롱헤롱 사자";
-                        determined = true;
-                    }
-                } catch (NumberFormatException ignored) {}
-            }
+        // 2번
+        String s2 = answers.get("2");
+        if (s2 != null) {
+            try {
+                int v2 = Integer.parseInt(s2.trim());
+                if (v2 >= 8) {
+                    return Map.of(
+                            "type", "헤롱헤롱 사자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/GroogyLion.jpg"
+                    );
+                }
+            } catch (NumberFormatException ignored) {}
         }
 
-        if (!determined && answers.containsKey("5") && answers.containsKey("3")) {
+        // 5 & 3
+        if (answers.containsKey("5") && answers.containsKey("3")) {
             String v5 = answers.get("5") == null ? "" : answers.get("5").trim();
             String v3 = answers.get("3") == null ? "" : answers.get("3").trim();
 
             if (v3.length() > 0) {
                 char first = Character.toUpperCase(v3.charAt(0));
+
                 if ("밖순이".equals(v5) && first == 'E') {
-                    resultType = "식빵 굽는 사자";
-                    determined = true;
+                    return Map.of(
+                            "type", "식빵 굽는 사자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/LoafingLion.jpg"
+                    );
                 } else if ("밖순이".equals(v5) && first == 'I') {
-                    resultType = "친구를 만나느라 샤샤샤자";
-                    determined = true;
+                    return Map.of(
+                            "type", "친구를 만나느라 샤샤샤자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/ShyLion.jpg"
+                    );
                 } else if ("집순이".equals(v5) && first == 'E') {
-                    resultType = "반전 매력 사자";
-                    determined = true;
+                    return Map.of(
+                            "type", "반전 매력 사자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/SurpriseLion.jpg"
+                    );
                 } else if ("집순이".equals(v5) && first == 'I') {
-                    resultType = "이불 속 사자";
-                    determined = true;
+                    return Map.of(
+                            "type", "이불 속 사자",
+                            "image", "https://cauhackathon-team2.p-e.kr/images/BlanketLion.jpg"
+                    );
                 }
             }
         }
 
-        // 4. Member 의 answer 필드에 저장
-        member.setAnswer(resultType);
-        memberRepository.save(member);
-
-        // 5. 응답 반환
-        return JoinResponseDto.fromEntity(member);
+        return Map.of("type", null, "image", null);
     }
-
 
     public MyResponseDto my(Long id){
 
@@ -165,4 +187,12 @@ public class MemberService {
         }
         return MyResponseDto.fromEntity(member, description);
     }
+
+    @Transactional
+    public void deleteMember(Long id) {
+        Member member = memberRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+        memberRepository.delete(member);
+    }
+
 }

@@ -35,4 +35,11 @@ public class JoinController {
     public ResponseEntity<MyResponseDto> getMyInfo(@PathVariable Long id){
         return ResponseEntity.ok(memberService.my(id));
     }
+
+    @DeleteMapping("/member/{id}")
+    public ResponseEntity<String> deleteMember(@PathVariable Long id){
+        memberService.deleteMember(id);
+        return ResponseEntity.ok("회원이 성공적으로 삭제되었습니다.");
+    }
+
 }
