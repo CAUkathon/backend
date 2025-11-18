@@ -2,7 +2,10 @@ spring:
   config:
     import: optional:application-secret.yml
   profiles:
-    active: deployment
+    active: development
   jpa:
     hibernate:
       ddl-auto: update
+
+jwt:
+  secret: lvsaEnHCvHhczASzWejypvC2SUCmcns4zDpUMqg16kTaURwfNqQej+TBzmWYK3oIdIVsp9lkK5C3YyNqmDqB8GBJd7jafUbf7s3nWMS0uOyAUzTu+lNKuZjP0/vefK/elq9ocYvOiQxKK7qk9LURQqQxzhUD8qgPmQYKS6fWXpc0srhSBJd3tjh1AXR0mRJhjDFFpk9LoIdWEv9bS9hW+rmRwo7Tb2sSutKwAgUHlB1Pu84FOjK8gbISYiWamcNRsuCNRHT1P8wI1pl8CdB1xcD2+uJt7U3YsbtM2nSEGayUp7hBSNt2ObRhWSzWWm8fh8bJkEu918BxS1P+AxORFA==
