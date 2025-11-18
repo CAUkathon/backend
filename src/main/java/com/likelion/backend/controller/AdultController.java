@@ -13,8 +13,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/adult")
 public class AdultController {
-    private final AdultService adultService;
 
+    private final AdultService adultService;
 
     @GetMapping
     public AdultWrapperResponseDto getGroupedResults(){
