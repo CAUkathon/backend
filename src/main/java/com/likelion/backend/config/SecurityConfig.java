@@ -1,8 +1,10 @@
 package com.likelion.backend.config;
 
+import com.likelion.backend.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -10,6 +12,7 @@ import org.springframework.security.config.annotation.web.configurers.CorsConfig
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Arrays;
@@ -19,19 +22,27 @@ import java.util.Collections;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         // 설정 추가
-        return http
+        http
                 .cors((SecurityConfig::corsAllow)) // Cors 설정
                 .csrf(AbstractHttpConfigurer::disable) // CSRF 비활성화
                 .sessionManagement((manager) -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))// 세션 로그인 안함
                 .httpBasic(AbstractHttpConfigurer::disable) // http basic auth 기반 로그인 인증창 뜨지 않게
                 .formLogin(AbstractHttpConfigurer::disable) // 기본 로그인 페이지 뜨지 않게.
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/join", "/login","/my/{id}", "question", "/team","adult", "/images/**", "/member/**").permitAll() // 모두 허용
-                        .anyRequest().authenticated())
-                .build();
+                        .requestMatchers(HttpMethod.GET, "/team").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/team").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/team").authenticated()
+                        .requestMatchers("/join","/login","/my/{id}", "/question", "/images/**", "/member/**").permitAll() // 모두 허용
+                        .requestMatchers("/**").authenticated()); // 관리자 페이지는 인증 필요
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
 
     @Bean

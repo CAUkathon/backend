@@ -18,6 +18,7 @@ public class JoinController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto dto) {
+
         return ResponseEntity.ok(memberService.login(dto));
     }
 

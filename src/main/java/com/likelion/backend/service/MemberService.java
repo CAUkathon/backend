@@ -9,13 +9,16 @@ import com.likelion.backend.dto.response.JoinResponseDto;
 import com.likelion.backend.dto.response.LoginResponseDto;
 import com.likelion.backend.dto.response.MyResponseDto;
 import com.likelion.backend.enums.Role;
+import com.likelion.backend.jwt.JwtTokenProvider;
 import com.likelion.backend.repository.MemberRepository;
 import com.likelion.backend.repository.QuestionRepository;
 import com.likelion.backend.repository.QuestionResultRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -26,6 +29,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final QuestionRepository questionRepository;
     private final QuestionResultRepository questionResultRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 비밀번호 인코더 DI (생성자 주입)
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -38,17 +42,23 @@ public class MemberService {
 
         // 2) 비밀번호 검증
         if (!bCryptPasswordEncoder.matches(dto.getPassword(), member.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 틀렸습니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "비밀번호가 틀렸습니다.");
         }
 
         // 질문 응답 여부
         boolean hasQuestion = questionResultRepository.existsByMember(member);
 
+        // 토큰 발급
+        String accessToken = jwtTokenProvider.generateAccessToken(member.getName());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(member.getName());
+
         return new LoginResponseDto(
                 member.getId(),
                 member.getName(),
                 member.getRole().name(),
-                hasQuestion
+                hasQuestion,
+                accessToken,
+                refreshToken
         );
     }
 
